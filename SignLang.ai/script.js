@@ -38,6 +38,25 @@ textInput.addEventListener('focus', () => {
 textInput.addEventListener('blur', () => {
   textInput.classList.remove('expanded');
 });
+async function ensureMicPermission() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    voiceStatus.textContent = 'Mic not supported in this browser.';
+    console.error('navigator.mediaDevices.getUserMedia not available');
+    return false;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // we don't actually need the audio stream, just the permission
+    stream.getTracks().forEach(t => t.stop());
+    console.log('Microphone permission granted');
+    return true;
+  } catch (err) {
+    console.error('Microphone permission error:', err);
+    voiceStatus.textContent = `Mic blocked or denied: ${err.name}`;
+    return false;
+  }
+}
 
 // ------------------------
 // Loop toggle
@@ -103,10 +122,30 @@ if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
     stopListening();
   };
 
-  voiceToggleButton.addEventListener('click', () => {
-    if (isListening) recognition.stop();
-    else recognition.start();
+  voiceToggleButton.addEventListener('click', async () => {
+    // If already listening → stop
+    if (isListening) {
+      recognition.stop();
+      return;
+    }
+
+    // First, ask for mic permission using getUserMedia
+    const ok = await ensureMicPermission();
+    if (!ok) {
+      voiceStatus.textContent =
+        'Mic blocked. Click the lock icon in the address bar → Site settings → Microphone → Allow for this site.';
+      return;
+    }
+
+    // If permission granted → start recognition
+    try {
+      recognition.start();
+    } catch (err) {
+      console.error('SpeechRecognition start error:', err);
+      voiceStatus.textContent = `Speech recognition error: ${err.name}`;
+    }
   });
+
 } else {
   voiceStatus.textContent = 'Voice recognition not supported.';
   voiceToggleButton.disabled = true;
