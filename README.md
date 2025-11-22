@@ -19,7 +19,7 @@ Visora is an assistive communication solution designed to enable inclusive digit
 - **Realtime:** Socket.IO / WebRTC
 - **Assets:** Sign language GIF/video library
 
-## 📦 Installation & Setup
+## 📦 Installation & Setup....
 
 ```bash
 # 1. Clone repository
