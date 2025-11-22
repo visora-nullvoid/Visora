@@ -1,0 +1,29 @@
+# Web framework
+Flask==2.3.3
+
+# Translation
+deep-translator==1.11.1
+
+# Transformers for summarization and NLP
+transformers==4.42.0
+torch==2.1.0
+
+# Speech recognition and text-to-speech
+SpeechRecognition==3.11.0
+gTTS==2.3.2
+pydub==0.27.0
+
+# Video processing
+moviepy==2.0.0
+opencv-python==4.8.1.78
+
+# Utilities
+numpy==1.26.4
+pandas==2.1.1
+requests==2.32.0
+
+# Optional for progress bars / CLI
+tqdm==4.66.1
+
+# For multilingual support
+langdetect==1.0.9

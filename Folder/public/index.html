@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Video Call</title>
+  <style>
+    :root {
+      --bg: #020617;
+      --stage-bg: #020b26;
+      --panel-bg: #111827;
+      --accent: #38bdf8;
+      --accent-strong: #0ea5e9;
+      --danger: #ef4444;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #1f2937;
+      --radius-xl: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* MAKE APP FILL SCREEN */
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #020b26 0, #020617 40%, #000 100%);
+      color: var(--text);
+      min-height: 100vh;
+      justify-content: center;   /* horizontally center app */
+      align-items: stretch;      /* app uses full height */
+      margin: 1px;
+      padding: 0;                /* no padding so app = full viewport */
+    }
+
+    .app {
+      width: 100%;
+      max-width: 100%;
+      height: 100vh;             /* full viewport height */
+      background: #020617;
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(15, 23, 42, 0.9);
+      box-shadow: 0 20px 55px rgba(15, 23, 42, 0.95);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* HEADER */
+
+    .header {
+      height: 60px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background: #020617;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.9);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-pill {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #38bdf8, #1d4ed8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 6px 18px rgba(56, 189, 248, 0.8);
+    }
+
+    .header-titles h1 {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .header-titles p {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #020617;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #1f2937;
+      flex-shrink: 0;
+    }
+
+    .header-center label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    #roomInput {
+      background: #020617;
+      border-radius: 999px;
+      border: 1px solid #1f2937;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      min-width: 170px;
+    }
+
+    #roomInput::placeholder {
+      color: #4b5563;
+    }
+
+    #roomInput:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+      user-select: none;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+      color: white;
+      box-shadow: 0 8px 18px rgba(56, 189, 248, 0.6);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.96;
+    }
+
+    .btn-ghost {
+      background: #020617;
+      color: var(--text);
+      border: 1px solid #1f2937;
+    }
+
+    .btn-small {
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      min-width: 130px;
+    }
+
+    .status-pill {
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #020617;
+      border: 1px solid #1f2937;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--muted);
+    }
+
+    .status-pill.connected .status-dot {
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+    }
+
+    .status-pill.connecting .status-dot {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    .status-pill.disconnected .status-dot {
+      background: var(--danger);
+      box-shadow: 0 0 6px var(--danger);
+    }
+
+    .room-tag {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .room-tag span {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* BODY LAYOUT */
+
+    .body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 3fr 1.1fr;
+      background: #020617;
+      min-height: 0; /* important for flex children to not overflow */
+    }
+
+    /* LEFT STAGE */
+
+    .stage {
+      position: relative;
+      padding: 18px 20px 72px;
+      background: #020617;
+      min-height: 0;
+    }
+
+    .stage-inner {
+      width: 100%;
+      height: 100%;
+      background: var(--stage-bg);
+      border-radius: 26px;
+      border: 1px solid #020b26;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stage-main {
+      flex: 1;
+      position: relative;
+      padding: 40px 40px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    #remoteVideo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #020b26;
+    }
+
+    #remotePlaceholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.5) 0, transparent 45%);
+      text-align: center;
+      padding: 0 16px;
+    }
+
+    .remote-title {
+      font-size: 38px;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    .remote-caption {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .bottom-strip {
+      height: 64px;
+      background: #000000;
+      color: #e5e7eb;
+      padding: 8px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .bottom-strip strong {
+      font-weight: 500;
+    }
+
+    .subtitle-line {
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* LOCAL PREVIEW */
+
+    .local-preview {
+      position: absolute;
+      right: 32px;
+      bottom: 88px;
+      width: 220px;
+      aspect-ratio: 4 / 3;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid var(--accent-strong);
+      background: #020617;
+      box-shadow: 0 16px 35px rgba(0, 0, 0, 0.8);
+      z-index: 5;
+    }
+
+    #localVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #020617;
+    }
+
+    #localPlaceholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .local-label {
+      position: absolute;
+      left: 8px;
+      bottom: 8px;
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      border: 1px solid #1f2937;
+    }
+
+    /* RIGHT PANEL */
+
+    .panel {
+      border-left: 1px solid #020b26;
+      background: #020617;
+      padding: 18px 18px 72px 0;
+      min-height: 0;
+    }
+
+    .panel-box {
+      height: 100%;
+      background: var(--panel-bg);
+      border-radius: 26px 0 0 26px;
+      border-left: 1px solid #020b26;
+      padding: 18px 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .panel-header {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-header small {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .panel-header-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .gif-box {
+      margin-top: 6px;
+      width: 100%;
+      padding-top: 56%;
+      border-radius: 18px;
+      background: #020617;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1px solid #1f2937;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gif-box video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #020617;
+    }
+
+    #signFallbackText {
+      position: absolute;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .panel-text-log {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #1f2937;
+      font-size: 12px;
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      min-height: 0;
+    }
+
+    .log-line {
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .log-role {
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
+    .log-role.host {
+      color: #38bdf8;
+    }
+
+    .log-role.participant {
+      color: #a3e635;
+    }
+
+    /* BOTTOM CONTROLS BAR */
+
+    .controls-bar {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .controls-inner {
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 999px;
+      padding: 8px 12px;
+      border: 1px solid #020b26;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      box-shadow: 0 16px 30px rgba(0, 0, 0, 0.8);
+    }
+
+    .round-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      border: none;
+      background: #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      color: #e5e7eb;
+      cursor: pointer;
+      border: 1px solid #1f2937;
+      transition: transform 0.08s ease, background 0.12s ease, border 0.12s ease, opacity 0.12s ease;
+    }
+
+    .round-btn:active {
+      transform: scale(0.94);
+    }
+
+    .round-btn.danger {
+      background: #ef4444;
+      border-color: #fecaca;
+      color: white;
+    }
+
+    .round-btn.toggle-off {
+      background: #7f1d1d;
+      border-color: #fecaca;
+    }
+
+    #status {
+      font-size: 11px;
+      color: #9ca3af;
+      position: absolute;
+      left: 20px;
+      bottom: 18px;
+    }
+
+    /* TOAST */
+
+    #toast {
+      position: absolute;
+      left: 50%;
+      bottom: 90px;
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(15, 23, 42, 0.98);
+      color: #e5e7eb;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid #1f2937;
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      max-width: 60%;
+      text-align: center;
+      z-index: 20;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* RESPONSIVE TWEAKS FOR SMALLER SCREENS */
+
+    @media (max-width: 1280px) {
+      .app {
+        border-radius: 0;     /* on smaller screens, go edge-to-edge */
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .app {
+        height: 100vh;
+      }
+      .body {
+        grid-template-columns: 2.3fr 1.2fr;
+      }
+      .local-preview {
+        width: 180px;
+      }
+    }
+
+    @media (max-width: 840px) {
+      .body {
+        grid-template-columns: 1fr;
+      }
+      .panel {
+        display: none;
+      }
+      .stage {
+        padding: 12px 10px 70px;
+      }
+      .stage-main {
+        padding: 20px 16px 0;
+      }
+      .remote-title {
+        font-size: 26px;
+      }
+      .local-preview {
+        right: 18px;
+        bottom: 80px;
+        width: 160px;
+      }
+    }
+
+    @media (max-height: 650px) {
+      .header {
+        height: 52px;
+        padding: 6px 12px;
+      }
+      .stage {
+        padding: 10px 10px 64px;
+      }
+      .bottom-strip {
+        height: 52px;
+        padding: 6px 12px;
+      }
+      .controls-bar {
+        bottom: 10px;
+      }
+      #status {
+        bottom: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- HEADER -->
+    <div class="header">
+      <div class="header-left">
+        <div class="logo-pill">VS</div>
+        <div class="header-titles">
+          <h1>Video Conferencing</h1>
+          <p>With Sign Language</p>
+        </div>
+      </div>
+      <h1>
+      <div class="header-center">
+        <label for="roomInput"><h1>Room</h1></label>
+        <input id="roomInput" placeholder="e.g. 123" />
+        <button id="joinBtn" class="btn btn-primary">Join</button>
+        <button id="leaveBtn" class="btn btn-ghost">Leave</button>
+      </div>
+</h1>
+      <div class="header-right">
+        <div id="statusPill" class="status-pill disconnected">
+          <div class="status-dot"></div>
+          <span id="statusLabel">Not connected</span>
+        </div>
+        <div class="room-tag">Room: <span id="roomName">—</span></div>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="body">
+      <!-- LEFT: STAGE -->
+      <div class="stage">
+        <div class="stage-inner">
+          <div class="stage-main">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div id="remotePlaceholder">
+              <div class="remote-title">Waiting for the other participant to join this room…</div>
+              <div class="remote-caption"></div>
+            </div>
+          </div>
+          <div class="bottom-strip">
+            <div><strong></strong></div>
+            <div class="subtitle-line">
+            </div>
+          </div>
+        </div>
+
+        <!-- local small preview -->
+        <div class="local-preview">
+          <video id="localVideo" autoplay playsinline muted></video>
+          <div id="localPlaceholder">
+            <div>🎥</div>
+            <div>Waiting for camera access…</div>
+          </div>
+          <div class="local-label">You</div>
+        </div>
+
+        <!-- bottom control bar -->
+        <div class="controls-bar">
+          <div class="controls-inner">
+            <button id="micBtn" class="round-btn" title="Mute / Unmute">🎙</button>
+            <button id="camBtn" class="round-btn" title="Camera On / Off">🎥</button>
+            <button id="leaveRoundBtn" class="round-btn danger" title="Leave Call">⏹</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: SIGN / LIVE TEXT PANEL -->
+      <aside class="panel">
+        <div class="panel-box">
+          <div class="panel-header">
+            <span>SignCast Assistant</span>
+            <div class="panel-header-actions">
+              <small>Live speech text</small>
+              <button id="downloadTranscriptBtn" class="btn btn-ghost btn-small" type="button">
+                Download
+              </button>
+            </div>
+          </div>
+
+          <div class="gif-box" id="signGifBox">
+            <video id="signVideo" playsinline></video>
+            <div id="signFallbackText"></div>
+          </div>
+
+          <!-- SCROLLABLE LIVE TEXT LOG -->
+          <div class="panel-text-log" id="liveTextLog">
+            <!-- Speech text appears here -->
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- footer status -->
+    <span id="status">Not connected</span>
+
+    <!-- toast -->
+    <div id="toast"></div>
+  </div>
+
+  <!-- socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const joinBtn = document.getElementById('joinBtn');
+    const leaveBtn = document.getElementById('leaveBtn');
+    const leaveRoundBtn = document.getElementById('leaveRoundBtn');
+    const roomInput = document.getElementById('roomInput');
+    const roomNameSpan = document.getElementById('roomName');
+
+    const statusDiv = document.getElementById('status');
+    const statusPill = document.getElementById('statusPill');
+    const statusLabel = document.getElementById('statusLabel');
+
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const localPlaceholder = document.getElementById('localPlaceholder');
+    const remotePlaceholder = document.getElementById('remotePlaceholder');
+
+    const micBtn = document.getElementById('micBtn');
+    const camBtn = document.getElementById('camBtn');
+
+    const liveTextLog = document.getElementById('liveTextLog');
+    const toastEl = document.getElementById('toast');
+
+    const signVideo = document.getElementById('signVideo');
+    const signFallbackText = document.getElementById('signFallbackText');
+    const downloadBtn = document.getElementById('downloadTranscriptBtn');
+
+    // force muted to avoid autoplay issues
+    if (signVideo) {
+      signVideo.muted = true;
+    }
+
+    let socket;
+    let socketInitialized = false;
+    let roomId;
+    let isInitiator = false;
+    let isStarted = false;
+
+    let pc;
+    let localStream;
+
+    let audioEnabled = true;
+    let videoEnabled = true;
+
+    // STT
+    let recognition = null;
+    let sttActive = false;
+    let myRoleLabel = 'Participant'; // Host or Participant
+
+    // transcript storage for download
+    const transcriptLines = [];
+// ---------- SIGN VIDEO QUEUE ---------- //
+
+// MP4 videos in sign/ folder, filenames in FULL CAPS: HELLO.mp4, A.mp4, ...
+const SIGN_BASE_PATH = 'sign/';
+const SIGN_EXT = '.webm';
+
+let signWordQueue = [];
+let signWordIndex = 0;
+let signLetterQueue = null;
+let signLetterIndex = 0;
+
+function queueSignForText(text) {
+  if (!signVideo) return;
+
+  const cleaned = (text || '')
+    .toUpperCase()
+    .replace(/[^A-Z\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (!cleaned.length) return;
+
+  try { signVideo.pause(); } catch (_) {}
+
+  signWordQueue = cleaned;
+  signWordIndex = 0;
+  signLetterQueue = null;
+  signLetterIndex = 0;
+
+  console.log('queueSignForText:', cleaned);
+  playNextSignWord();
+}
+
+function playNextSignWord() {
+  if (signWordIndex >= signWordQueue.length) {
+    signLetterQueue = null;
+    signLetterIndex = 0;
+    signVideo.style.display = 'none';
+    signFallbackText.style.display = 'block';
+    signFallbackText.textContent = 'Sign preview';
+    return;
+  }
+
+  const word = signWordQueue[signWordIndex];
+  signLetterQueue = null;
+  signLetterIndex = 0;
+  playWordVideo(word);
+}
+
+function playWordVideo(word) {
+  if (!signVideo) return;
+
+  const upperWord = (word || '').toUpperCase().trim();
+  const filePath = SIGN_BASE_PATH + upperWord + SIGN_EXT;
+
+  console.log('Trying WORD sign:', filePath);
+
+  signFallbackText.style.display = 'none';
+  signVideo.style.display = 'block';
+  signVideo.muted = true;
+  signVideo.autoplay = true;
+
+  signVideo.onerror = () => {
+    console.warn('WORD video error (likely missing):', filePath, signVideo.error);
+    signLetterQueue = upperWord.split('');
+    signLetterIndex = 0;
+    playNextLetter();
+  };
+
+  signVideo.onended = () => {
+    if (signLetterQueue && signLetterIndex < signLetterQueue.length) return;
+    signWordIndex++;
+    playNextSignWord();
+  };
+
+  signVideo.src = filePath + '?v=' + Date.now();
+  signVideo.load();
+  signVideo.play().catch(err => {
+    console.warn('Autoplay blocked (WORD):', err);
+  });
+}
+
+function playNextLetter() {
+  if (!signLetterQueue || signLetterIndex >= signLetterQueue.length) {
+    signLetterQueue = null;
+    signLetterIndex = 0;
+    signWordIndex++;
+    playNextSignWord();
+    return;
+  }
+
+  const letter = (signLetterQueue[signLetterIndex] || '').toUpperCase().trim();
+  const filePath = SIGN_BASE_PATH + letter + SIGN_EXT;
+
+  console.log('Trying LETTER sign:', filePath);
+
+  signVideo.onerror = () => {
+    console.warn('LETTER video error (likely missing):', filePath, signVideo.error);
+    signLetterIndex++;
+    playNextLetter();
+  };
+
+  signVideo.onended = () => {
+    signLetterIndex++;
+    playNextLetter();
+  };
+
+  signVideo.muted = true;
+  signVideo.autoplay = true;
+  signVideo.src = filePath + '?v=' + Date.now();
+  signVideo.load();
+  signVideo.play().catch(err => {
+    console.warn('Autoplay blocked (LETTER):', err);
+  });
+}
+
+    /* ---------- UI HELPERS ---------- */
+
+    function showToast(msg) {
+      if (!toastEl) return;
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      setTimeout(() => {
+        toastEl.classList.remove('show');
+      }, 2200);
+    }
+
+    function appendLiveText(role, text) {
+      if (!liveTextLog) return;
+      const trimmed = (text || '').trim();
+      if (!trimmed) return;
+
+      const line = document.createElement('div');
+      line.className = 'log-line';
+
+      const roleSpan = document.createElement('span');
+      roleSpan.className = 'log-role ' + role.toLowerCase();
+      roleSpan.textContent = role + ':';
+
+      const textSpan = document.createElement('span');
+      textSpan.textContent = ' ' + trimmed;
+
+      line.appendChild(roleSpan);
+      line.appendChild(textSpan);
+      liveTextLog.appendChild(line);
+
+      transcriptLines.push(`${role}: ${trimmed}`);
+
+      // limit to last 80 lines
+      const MAX_LINES = 80;
+      while (liveTextLog.children.length > MAX_LINES) {
+        liveTextLog.removeChild(liveTextLog.firstChild);
+      }
+
+      liveTextLog.scrollTop = liveTextLog.scrollHeight;
+    }
+
+    function setStatusPill(state, text) {
+      statusPill.classList.remove('connected', 'connecting', 'disconnected');
+      statusPill.classList.add(state);
+      statusLabel.textContent = text;
+    }
+
+    function logStatus(msg) {
+      console.log(msg);
+      statusDiv.textContent = msg;
+      showToast(msg);
+    }
+
+    /* ---------- STT SETUP ---------- */
+
+    function initSpeechRecognition() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        console.warn('SpeechRecognition not supported in this browser.');
+        showToast('STT not supported in this browser');
+        return;
+      }
+      recognition = new SR();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.lang = 'en-IN';
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i];
+          if (!res.isFinal) continue;
+
+          const transcript = res[0].transcript.trim();
+          if (!transcript) continue;
+
+          appendLiveText(myRoleLabel, transcript);
+
+          if (socket && roomId) {
+            socket.emit('transcript', {
+              roomId,
+              role: myRoleLabel,
+              text: transcript
+            });
+          }
+
+          // trigger sign playback
+          queueSignForText(transcript);
+        }
+      };
+
+      recognition.onerror = (e) => {
+        console.warn('STT error:', e.error);
+      };
+
+      recognition.onend = () => {
+        if (isStarted && sttActive) {
+          try { recognition.start(); } catch (_) {}
+        }
+      };
+    }
+
+    function startSTT() {
+      if (!recognition || sttActive) return;
+      try {
+        recognition.start();
+        sttActive = true;
+      } catch (e) {
+        console.warn('Cannot start STT:', e.message);
+      }
+    }
+
+    function stopSTT() {
+      if (recognition && sttActive) {
+        sttActive = false;
+        try {
+          recognition.stop();
+        } catch (_) {}
+      }
+    }
+
+    /* ---------- MEDIA / WEBRTC ---------- */
+
+    const config = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ]
+    };
+
+    async function initLocalStream() {
+      if (localStream) return;
+
+      try {
+        setStatusPill('connecting', 'Requesting media…');
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        localVideo.srcObject = localStream;
+        localPlaceholder.style.display = 'none';
+        setStatusPill('disconnected', 'Ready to join');
+      } catch (err) {
+        console.error('Error getting user media:', err);
+        logStatus('Error getting camera/mic: ' + err.message);
+        setStatusPill('disconnected', 'Media error');
+      }
+    }
+
+    function createPeerConnection() {
+      pc = new RTCPeerConnection(config);
+
+      localStream.getTracks().forEach(track => {
+        pc.addTrack(track, localStream);
+      });
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit('signal', {
+            roomId,
+            data: { type: 'candidate', candidate: event.candidate }
+          });
+        }
+      };
+
+      pc.ontrack = (event) => {
+        if (remoteVideo.srcObject !== event.streams[0]) {
+          remoteVideo.srcObject = event.streams[0];
+          remotePlaceholder.style.display = 'none';
+          logStatus('Received remote stream.');
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        const state = pc.connectionState;
+        console.log('PeerConnection state:', state);
+        if (state === 'connected') {
+          setStatusPill('connected', 'In call');
+        } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+          setStatusPill('disconnected', 'Disconnected');
+        } else {
+          setStatusPill('connecting', state);
+        }
+      };
+
+      logStatus('Created RTCPeerConnection.');
+    }
+
+    async function maybeStart() {
+      if (!isStarted && localStream && socket && roomId) {
+        createPeerConnection();
+        isStarted = true;
+
+        if (isInitiator) {
+          try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('signal', {
+              roomId,
+              data: { type: 'offer', sdp: offer }
+            });
+            logStatus('Sent offer.');
+          } catch (err) {
+            console.error('Error creating offer:', err);
+          }
+        }
+      }
+    }
+
+    function handleSignal(message) {
+      const { data } = message;
+
+      if (!pc && data.type !== 'offer') {
+        createPeerConnection();
+        isStarted = true;
+      }
+
+      switch (data.type) {
+        case 'offer':
+          handleOffer(data.sdp);
+          break;
+        case 'answer':
+          handleAnswer(data.sdp);
+          break;
+        case 'candidate':
+          handleCandidate(data.candidate);
+          break;
+        default:
+          console.warn('Unknown signal type:', data.type);
+      }
+    }
+
+    async function handleOffer(offer) {
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('signal', {
+          roomId,
+          data: { type: 'answer', sdp: answer }
+        });
+        logStatus('Received offer and sent answer.');
+      } catch (err) {
+        console.error('Error handling offer:', err);
+      }
+    }
+
+    async function handleAnswer(answer) {
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        logStatus('Received answer.');
+      } catch (err) {
+        console.error('Error handling answer:', err);
+      }
+    }
+
+    function handleCandidate(candidate) {
+      pc.addIceCandidate(new RTCIceCandidate(candidate))
+        .catch(err => console.error('Error adding ICE candidate:', err));
+    }
+
+    function cleanupConnection() {
+      if (pc) {
+        pc.ontrack = null;
+        pc.onicecandidate = null;
+        pc.onconnectionstatechange = null;
+        pc.close();
+        pc = null;
+      }
+      isStarted = false;
+      if (remoteVideo) remoteVideo.srcObject = null;
+      remotePlaceholder.style.display = 'flex';
+      setStatusPill('disconnected', 'Disconnected');
+      stopSTT();
+    }
+
+    function handleCallEnded(message) {
+      cleanupConnection();
+      alert(message);
+      window.location.reload();
+    }
+
+    /* ---------- SOCKET ---------- */
+
+    function initSocketIfNeeded() {
+      if (socketInitialized) return;
+      socket = io();
+      socketInitialized = true;
+
+      socket.on('connect', () => {
+        logStatus('Connected to signaling server.');
+      });
+
+      socket.on('joined', ({ roomId: joinedRoom, isInitiator: init }) => {
+        isInitiator = init;
+        myRoleLabel = isInitiator ? 'Host' : 'Participant';
+        logStatus(`Joined room ${joinedRoom} as ${myRoleLabel}. Initiator = ${isInitiator}`);
+        startSTT();
+      });
+
+      socket.on('ready', () => {
+        logStatus('Room ready, starting WebRTC…');
+        setStatusPill('connecting', 'Negotiating…');
+        maybeStart();
+      });
+
+      socket.on('signal', (message) => {
+        handleSignal(message);
+      });
+
+      socket.on('peer-disconnected', () => {
+        showToast('Peer disconnected');
+        cleanupConnection();
+      });
+
+      socket.on('call-ended', () => {
+        handleCallEnded('Call ended by the other participant.');
+      });
+
+      socket.on('transcript', ({ role, text }) => {
+        appendLiveText(role || 'Participant', text);
+        queueSignForText(text);
+      });
+    }
+
+    /* ---------- BUTTONS ---------- */
+
+    joinBtn.onclick = async () => {
+      const value = roomInput.value.trim();
+      if (!value) {
+        alert('Enter a room ID');
+        return;
+      }
+      roomId = value;
+      roomNameSpan.textContent = roomId;
+
+      await initLocalStream();
+      initSocketIfNeeded();
+
+      setStatusPill('connecting', 'Joining room…');
+      socket.emit('join', roomId);
+    };
+
+    function leaveClickedByUser() {
+      if (!roomId || !socket) {
+        handleCallEnded('Call ended.');
+        return;
+      }
+      socket.emit('end-call', { roomId });
+      handleCallEnded('You left the call.');
+    }
+
+    leaveBtn.onclick = leaveClickedByUser;
+    leaveRoundBtn.onclick = leaveClickedByUser;
+
+    micBtn.onclick = () => {
+      if (!localStream) return;
+      audioEnabled = !audioEnabled;
+      localStream.getAudioTracks().forEach(t => t.enabled = audioEnabled);
+      micBtn.classList.toggle('toggle-off', !audioEnabled);
+      micBtn.textContent = audioEnabled ? '🎙' : '🔇';
+      showToast(audioEnabled ? 'Mic unmuted' : 'Mic muted');
+    };
+
+    camBtn.onclick = () => {
+      if (!localStream) return;
+      videoEnabled = !videoEnabled;
+      localStream.getVideoTracks().forEach(t => t.enabled = videoEnabled);
+      camBtn.classList.toggle('toggle-off', !videoEnabled);
+      camBtn.textContent = videoEnabled ? '🎥' : '📷';
+      showToast(videoEnabled ? 'Camera on' : 'Camera off');
+    };
+
+    downloadBtn.onclick = () => {
+      if (!transcriptLines.length) {
+        showToast('No transcript to download');
+        return;
+      }
+      const blob = new Blob([transcriptLines.join('\n')], {
+        type: 'text/plain;charset=utf-8'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      a.href = url;
+      a.download = `transcript_${ts}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    // init media + STT base
+    initLocalStream();
+    initSpeechRecognition();
+    window.testSign = () => queueSignForText('HELLO');
+
+  </script>
+</body>
+</html>

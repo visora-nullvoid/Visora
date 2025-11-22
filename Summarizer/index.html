@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Starfield Summarizer ⚡</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter Font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        :root { font-family: 'Inter', sans-serif; }
+    </style>
+    <!-- PDF.js and Docx.js are loaded via script tags -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+
+    <style>
+        /* Custom styles for the dark theme and canvas */
+        body {
+            background-color: #0d1117; /* Dark background */
+            color: #c9d1d9; /* Light text */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Prevent body scroll due to canvas */
+        }
+        
+        /* The canvas covers the entire viewport */
+        #background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            width: 100vw;
+            height: 100vh;
+            opacity: 0.8; /* Slightly dimmed stars */
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            background-color: rgba(22, 27, 34, 0.9); /* Semi-transparent dark card */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            /* max-width: 50%; */
+            /* MODIFIED: Changed width to 60% for a fluid layout */
+            width: 60%; 
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid #30363d;
+        }
+
+        #inputText {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            resize: vertical;
+        }
+        
+        .custom-file-upload {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            background-color: #30363d;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            border: 1px solid #484f58;
+        }
+
+        .custom-file-upload:hover {
+            background-color: #484f58;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+
+        #summarizeBtn {
+            padding: 0.75rem 2rem;
+            background-color: #238636;
+            color: white;
+            font-weight: bold;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+            border: none;
+            box-shadow: 0 4px 10px rgba(35, 134, 54, 0.3);
+        }
+
+        #summarizeBtn:hover {
+            background-color: #2ea043;
+        }
+
+        #summaryContainer {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background-color: #161b22;
+            border-radius: 0.75rem;
+            border: 1px solid #30363d;
+            min-height: 100px;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #238636;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            .upload-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .custom-file-upload, #summarizeBtn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <canvas id="background"></canvas>
+
+    <div class="container">
+        <h1 class="text-3xl font-extrabold text-center mb-6">⚡ Content Summarizer ⚡</h1>
+
+        <textarea id="inputText" class="w-full p-3 mb-4 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Paste your text here..." rows="8"></textarea>
+        
+        <div class="upload-row flex justify-between items-center gap-4 mb-4">
+            <label class="custom-file-upload">
+                📄 Upload PDF / Word
+                <input type="file" id="fileInput" accept=".pdf,.docx,.doc">
+            </label>
+            <span id="fileStatus" class="flex-grow text-center text-sm italic text-gray-400"></span>
+            <button id="summarizeBtn" class="flex items-center justify-center">
+                📝 Summarize
+            </button>
+        </div>
+
+        <div id="summaryContainer" role="log" aria-live="polite">
+            <p class="text-gray-500 text-center">Your summary will appear here.</p>
+        </div>
+        <p id="userIdDisplay" class="text-xs mt-4 text-center text-gray-600"></p>
+    </div>
+
+    <!-- <script type="module">
+        // Set the worker source for PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        // --- MANDATORY FIREBASE SETUP ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        setLogLevel('Debug');
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth;
+        let userId = 'loading...';
+        let isAuthReady = false;
+
+        async function setupFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                    } else {
+                        userId = crypto.randomUUID();
+                    }
+                    isAuthReady = true;
+                    document.getElementById('userIdDisplay').textContent = `User ID: ${userId}`;
+                });
+
+            } catch (error) {
+                console.error("Firebase setup failed:", error);
+                userId = 'error';
+                isAuthReady = true;
+                document.getElementById('userIdDisplay').textContent = `User ID: ${userId} (Error)`;
+            }
+        }
+        
+        setupFirebase();
+
+        // --- STARFIELD CANVAS ANIMATION ---
+        const canvas = document.getElementById('background');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        const STAR_COUNT = 300;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function createStars() {
+            stars = [];
+            for (let i = 0; i < STAR_COUNT; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.5 + 0.5,
+                    initialAlpha: Math.random() * 0.5 + 0.5,
+                    // MODIFIED: Reduced the maximum blink speed significantly (from ~0.06 to ~0.01)
+                    blinkSpeed: Math.random() * 0.008 + 0.002, 
+                    offset: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        function drawStars(timestamp) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (const star of stars) {
+                // Calculate new alpha for blinking effect using a sine wave
+                const alpha = star.initialAlpha * (0.5 + 0.5 * Math.sin(timestamp * star.blinkSpeed + star.offset));
+                
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.fill();
+            }
+
+            requestAnimationFrame(drawStars);
+        }
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            createStars();
+        });
+
+        // Initial setup for the starfield
+        resizeCanvas();
+        createStars();
+        requestAnimationFrame(drawStars);
+
+
+        // --- SUMMARIZATION & FILE READING LOGIC ---
+
+        const inputTextarea = document.getElementById('inputText');
+        const fileInput = document.getElementById('fileInput');
+        const fileStatus = document.getElementById('fileStatus');
+        const summarizeBtn = document.getElementById('summarizeBtn');
+        const summaryContainer = document.getElementById('summaryContainer');
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        // Utility function for exponential backoff
+        async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.status !== 429) { // Not a rate limit error
+                        return response;
+                    }
+                    console.warn(`Rate limit hit (429). Retrying in ${delay}ms...`);
+                } catch (error) {
+                    console.error("Fetch attempt failed:", error);
+                }
+                // Wait before retrying
+                if (i < retries - 1) {
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2; // Exponential backoff
+                }
+            }
+            throw new Error('API call failed after multiple retries.');
+        }
+
+        function displayMessage(text, isError = false) {
+            summaryContainer.innerHTML = `<p class="whitespace-pre-wrap ${isError ? 'text-red-400' : 'text-gray-300'}">${text}</p>`;
+        }
+
+        async function summarizeContent(text) {
+            if (!text || text.trim().length === 0) {
+                displayMessage("Please provide some text to summarize.", true);
+                return;
+            }
+
+            // Simple system instruction and user query
+            const systemPrompt = "You are a professional summarization engine. Condense the user-provided text into a clear, concise, and easy-to-read summary, preserving the key facts and conclusions. Output only the summary.";
+            const userQuery = `Summarize the following document content:\n\n---\n\n${text.trim()}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                // Use Google Search for grounding if the content is likely factual/public knowledge
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            displayMessage(`<div class="loading-spinner"></div> Generating summary...`);
+            summarizeBtn.disabled = true;
+
+            try {
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const summaryText = candidate.content.parts[0].text;
+                    let sourcesHtml = '';
+                    
+                    // Extract and format grounding sources
+                    const groundingMetadata = candidate.groundingMetadata;
+                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                        const sources = groundingMetadata.groundingAttributions
+                            .map(attr => ({
+                                uri: attr.web?.uri,
+                                title: attr.web?.title,
+                            }))
+                            .filter(source => source.uri && source.title);
+
+                        if (sources.length > 0) {
+                            sourcesHtml = '<div class="mt-4 pt-4 border-t border-gray-700 text-xs text-gray-500">Sources: ';
+                            sources.forEach((source, index) => {
+                                sourcesHtml += `<a href="${source.uri}" target="_blank" class="text-blue-400 hover:underline">${source.title}</a>${index < sources.length - 1 ? ', ' : ''}`;
+                            });
+                            sourcesHtml += '</div>';
+                        }
+                    }
+
+                    // Display final output
+                    summaryContainer.innerHTML = `
+                        <p class="font-semibold text-lg mb-2 text-white">Summary:</p>
+                        <p class="whitespace-pre-wrap">${summaryText}</p>
+                        ${sourcesHtml}
+                    `;
+                    
+                    // Save the summary to Firestore (private data)
+                    if (isAuthReady && db && userId !== 'error') {
+                         await setDoc(doc(db, `artifacts/${appId}/users/${userId}/summaries`, new Date().toISOString()), {
+                            originalText: text.substring(0, 500) + (text.length > 500 ? '...' : ''), // Save snippet of original
+                            summary: summaryText.substring(0, 500) + (summaryText.length > 500 ? '...' : ''),
+                            timestamp: new Date().toISOString()
+                        }).catch(e => console.error("Error saving summary to Firestore:", e));
+                    }
+
+
+                } else {
+                    displayMessage("Summary generation failed. The model did not return text.", true);
+                    console.error("API response error:", result);
+                }
+
+            } catch (error) {
+                displayMessage(`An error occurred: ${error.message}`, true);
+                console.error("Summarization function failed:", error);
+            } finally {
+                summarizeBtn.disabled = false;
+            }
+        }
+
+        async function readPDF(file) {
+            fileStatus.textContent = 'Reading PDF...';
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let fullText = '';
+                
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+                }
+                
+                inputTextarea.value = fullText.trim();
+                fileStatus.textContent = `PDF loaded: ${file.name} (${pdf.numPages} pages)`;
+            } catch (error) {
+                fileStatus.textContent = `Error reading PDF: ${error.message}`;
+                console.error("PDF Read Error:", error);
+            }
+        }
+
+        async function readDocx(file) {
+            fileStatus.textContent = 'Reading Word Document...';
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                inputTextarea.value = result.value.trim();
+                fileStatus.textContent = `Word document loaded: ${file.name}`;
+            } catch (error) {
+                fileStatus.textContent = `Error reading Word document: ${error.message}`;
+                console.error("DOCX Read Error:", error);
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                fileStatus.textContent = '';
+                return;
+            }
+
+            const fileName = file.name.toLowerCase();
+            if (fileName.endsWith('.pdf')) {
+                readPDF(file);
+            } else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+                readDocx(file);
+            } else {
+                fileStatus.textContent = 'Unsupported file type.';
+            }
+        });
+
+        summarizeBtn.addEventListener('click', () => {
+            summarizeContent(inputTextarea.value);
+        });
+    </script> -->
+    <script src="main.js"></script>
+</body>
+</html>
